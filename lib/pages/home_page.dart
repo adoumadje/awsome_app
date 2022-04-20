@@ -2,43 +2,22 @@ import 'package:awsome_app/pages/login_page.dart';
 import 'package:awsome_app/utils/constants.dart';
 import 'package:flutter/material.dart';
 
-import '../drawer.dart';
-import '../name_card_widget.dart';
+import '../widgets/drawer.dart';
+import '../widgets/name_card_widget.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 
-class HomePage extends StatefulWidget {
-  const HomePage({ Key? key }) : super(key: key);
+class HomePage extends StatelessWidget {
   static const String routeName = "/home";
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
 
-class _HomePageState extends State<HomePage> {
-  // var myText = "Change My Name";
-  // TextEditingController _nameController = TextEditingController();
-
-  var url = Uri.parse("https://jsonplaceholder.typicode.com/photos");
   var data;
 
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    fetchData();
-  }
-
-  fetchData() async {
+  Future fetchData() async {
+    final url = Uri.parse("https://jsonplaceholder.typicode.com/photos");
     var res = await http.get(url);
-    data = jsonDecode(res.body);
-    setState(() { });
-  }
-
-  @override
-  void dispose() {
-    // TODO: implement dispose
-    super.dispose();
+    var data = jsonDecode(res.body);
+    return data;
   }
 
 
@@ -58,25 +37,46 @@ class _HomePageState extends State<HomePage> {
           )
         ],
       ),
-      body: data != null 
-            ? ListView.builder(
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(data[index]["title"]),
-                    subtitle: Text("ID: ${data[index]["id"]}"),
-                    leading: Image.network(data[index]["url"]),
-                  );
-                },
-                itemCount: data.length,
-              )
-            : Center(child: CircularProgressIndicator()),
+      body: FutureBuilder(
+        future: fetchData(),
+        builder: (context, snapshot) {
+          switch(snapshot.connectionState) {
+            case ConnectionState.none:
+              return Center(
+                child: Text("Fetch Something"),
+              );
+            case ConnectionState.active:
+            case ConnectionState.waiting:
+              return Center(
+                child: CircularProgressIndicator(),
+              );
+            case ConnectionState.done:
+              if(snapshot.hasError) {
+                return Center(
+                  child: Text("Some error occured"),
+                );
+              }
+
+              return ListView.builder(
+                      itemBuilder: (context, index) {
+                        return ListTile(
+                          title: Text(data[index]["title"]),
+                          subtitle: Text("ID: ${data[index]["id"]}"),
+                          leading: Image.network(data[index]["url"]),
+                        );
+                      },
+                      itemCount: data.length,
+                    );
+          }
+        },
+      ),
       drawer: MyDrawer(),
       floatingActionButton: FloatingActionButton(
         onPressed: () { 
           // myText = _nameController.text; 
           // setState(() {});
         },
-        child: Icon(Icons.send),
+        child: Icon(Icons.refresh),
       ),
     );
   }
